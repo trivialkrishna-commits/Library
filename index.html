@@ -3,50 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HMD Reader</title>
+    <title>Reader</title>
     <style>
-        /* Using very basic CSS for maximum compatibility */
-        body { 
-            background-color: #e0e0e0; 
-            color: #000; 
-            font-family: sans-serif; 
-            padding: 15px; 
-            margin: 0;
-        }
-        /* The menu is at the top, not fixed, so it doesn't disappear */
-        #menu { 
-            background: #cccccc; 
-            padding: 10px; 
-            border: 2px solid #666; 
-            margin-bottom: 20px;
-        }
-        #book-content { 
-            white-space: pre-wrap; 
-            word-wrap: break-word; 
-            line-height: 1.5;
-            font-size: 18px;
-        }
-        button { 
-            padding: 8px; 
-            margin: 4px;
-        }
+        body { background-color: #e0e0e0; font-family: sans-serif; padding: 10px; margin: 0; }
+        #menu { background: #ccc; padding: 10px; border-bottom: 2px solid #888; position: sticky; top: 0; z-index: 100; }
+        #book-body { white-space: pre-wrap; font-size: 18px; padding-top: 10px; }
+        .point { display: block; height: 0; text-decoration: none; color: transparent; }
+        button { padding: 8px; }
     </style>
 </head>
 <body>
 
-    <div id="menu">
-        <strong>Navigate:</strong><br>
-        <input type="number" id="pctInput" style="width: 50px;" placeholder="%">
-        <button onclick="jumpTo()">Jump</button>
-        <hr>
-        <button onclick="savePos()">Save Bookmark</button>
-        <button onclick="loadPos()">Load Bookmark</button>
-    </div>
+<div id="menu">
+    <input type="number" id="pInput" style="width:40px" placeholder="0-99"> %
+    <button onclick="go()">Jump</button> |
+    <button onclick="saveB()">Save</button>
+    <button onclick="loadB()">Load</button>
+</div>
 
-    <div id="book-content">
-<!-- PASTE YOUR ENTIRE BOOK TEXT HERE -->
+<div id="book-body" id="top">
+    <div id="content-area"></div>
+</div>
 
-THE BLUE LAGOON
+<script>
+    // 1. YOUR TEXT GOES HERE (Inside the quotes)
+    var myBookText = `THE BLUE LAGOON
 
 
 
@@ -3763,43 +3744,51 @@ In the bottom of the dinghy lay a girl, naked all but for a strip of coloured st
 
 
 
-THE END
-<!-- END OF BOOK TEXT -->
-    </div>
+THE END`;
 
-    <script>
-        // JUMP FEATURE: Uses pixels instead of anchors for precision
-        function jumpTo() {
-            var pct = document.getElementById('pctInput').value;
-            if (pct === "") return;
-            
-            var totalHeight = document.body.scrollHeight;
-            var target = (pct / 100) * totalHeight;
-            
-            window.scrollTo(0, target);
+    // 2. INJECT TEXT WITH ANCHORS
+    // This creates 100 invisible "jump points" throughout your text
+    var container = document.getElementById('content-area');
+    var segSize = Math.floor(myBookText.length / 100);
+    var fullHTML = "";
+
+    for (var i = 0; i < 100; i++) {
+        fullHTML += '<a name="mark' + i + '" id="mark' + i + '" class="point">.</a>';
+        fullHTML += myBookText.substring(i * segSize, (i + 1) * segSize);
+    }
+    container.innerHTML = fullHTML;
+
+    // 3. JUMP FUNCTION (Using Hash - very stable for Opera)
+    function go() {
+        var p = document.getElementById('pInput').value;
+        window.location.hash = "mark" + p;
+    }
+
+    // 4. BOOKMARK FUNCTION (Saves the specific mark number)
+    function saveB() {
+        // Find how far we've scrolled and guess the closest mark
+        var scrollPos = window.pageYOffset || document.documentElement.scrollTop;
+        var totalH = document.body.scrollHeight;
+        var percent = Math.floor((scrollPos / totalH) * 100);
+        
+        localStorage.setItem('hmd_bkmk', percent);
+        alert("Saved at " + percent + "%");
+    }
+
+    function loadB() {
+        var saved = localStorage.getItem('hmd_bkmk');
+        if (saved) {
+            window.location.hash = "mark" + saved;
+        } else {
+            alert("No bookmark");
         }
+    }
 
-        // BOOKMARK FEATURE: Uses LocalStorage (Standard in 4G browsers)
-        function savePos() {
-            var currentPos = window.pageYOffset || document.documentElement.scrollTop;
-            localStorage.setItem('my_bookmark', currentPos);
-            alert("Position Saved!");
-        }
-
-        function loadPos() {
-            var saved = localStorage.getItem('my_bookmark');
-            if (saved) {
-                window.scrollTo(0, parseInt(saved));
-            } else {
-                alert("No bookmark found.");
-            }
-        }
-
-        // Try to auto-load bookmark when page opens
-        window.onload = function() {
-            setTimeout(loadPos, 500); // Small delay to let phone render text first
-        };
-    </script>
+    // Auto-load on startup
+    window.onload = function() {
+        setTimeout(loadB, 300);
+    };
+</script>
 
 </body>
 </html>
