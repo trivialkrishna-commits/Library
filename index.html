@@ -1,243 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lite Reader</title>
     <style>
-        body { font-family: sans-serif; line-height: 1.6; padding: 10px; background: #fff; color: #000; }
-        #nav { position: fixed; top: 0; left: 0; width: 100%; background: #eee; border-bottom: 1px solid #ccc; padding: 5px; display: flex; justify-content: space-around; font-size: 14px; }
-        #content { margin-top: 50px; white-space: pre-wrap; }
-        input { width: 40px; }
-        button { padding: 5px; cursor: pointer; }
+        body { font-family: sans-serif; padding: 10px; margin-bottom: 60px;background: #d3d3d3; }
+        #controls { position: fixed; bottom: 0; left: 0; width: 100%; background: #ddd; padding: 10px; border-top: 2px solid #999; }
+        .mark { visibility: hidden; height: 0; margin: 0; }
     </style>
 </head>
 <body>
 
-<div id="nav">
-    <div>
-        <input type="number" id="percentInput" min="0" max="100" placeholder="%">
-        <button onclick="jumpTo()">Jump</button>
-    </div>
-    <button onclick="saveBookmark()">Save Bookmark</button>
-    <button onclick="loadBookmark()">Load</button>
-</div>
-
-<div id="content">
-    <!-- Paste your long text here -->
-   The Project Gutenberg eBook of The Blue Lagoon: A Romance
-
-
-This eBook is for the use of anyone anywhere in the United States and most other parts of the world at no cost and with almost no restrictions whatsoever. You may copy it, give it away or re-use it under the terms of the Project Gutenberg License included with this eBook or online at www.gutenberg.org. If you are not located in the United States, you will have to check the laws of the country where you are located before using this eBook.
-
-Title: The Blue Lagoon: A Romance
-
-Author: H. De Vere Stacpoole
-
-
-
-
-
-Release date: January 1, 1996 [eBook #393]
-
-Most recently updated: September 5, 2016
-
-Language: English
-
-Other information and formats: www.gutenberg.org/ebooks/393
-
-Credits: Produced by Edward A. Malone. Corrections by Roger Frank.
-
-
-
-
-*** START OF THE PROJECT GUTENBERG EBOOK THE BLUE LAGOON: A ROMANCE ***
-
-
-
-
-
-The Blue Lagoon: A Romance
-
-
-by H. de Vere Stacpoole
-
-
-
-
-
-CONTENTS
-
-
-
-
-
-BOOK I
-
-
-
-
-
-PART I
-
-
-
-
-
-I. WHERE THE SLUSH LAMP BURNS
-
-II. UNDER THE STARS
-
-III. THE SHADOW AND THE FIRE
-
-IV. AND LIKE A DREAM DISSOLVED
-
-V. VOICES HEARD IN THE MIST
-
-VI. DAWN ON A WIDE, WIDE SEA
-
-VII. STORY OF THE PIG AND THE BILLY-GOAT
-
-VIII. “S-H-E-N-A-N-D-O-A-H”
-
-IX. SHADOWS IN THE MOONLIGHT
-
-X. THE TRAGEDY OF THE BOATS
-
-
-
-
-
-PART II
-
-
-
-
-
-XI. THE ISLAND
-
-XII. THE LAKE OF AZURE
-
-XIII. DEATH VEILED WITH LICHEN
-
-XIV. ECHOES OF FAIRY-LAND
-
-XV. FAIR PICTURES IN THE BLUE
-
-
-
-
-
-PART III
-
-
-
-
-
-XVI. THE POETRY OF LEARNING
-
-XVII. THE DEVIL’S CASK
-
-XVIII. THE RAT HUNT
-
-XIX. STARLIGHT ON THE FOAM
-
-XX. THE DREAMER ON THE REEF
-
-XXI. THE GARLAND OF FLOWERS
-
-XXII. ALONE
-
-XXIII. THEY MOVE AWAY
-
-
-
-
-
-BOOK II
-
-
-
-
-
-PART I
-
-
-
-
-
-I. UNDER THE ARTU TREE
-
-II. HALF CHILD-HALF SAVAGE
-
-III. THE DEMON OF THE REEF
-
-IV. WHAT BEAUTY CONCEALED
-
-V. THE SOUND OF A DRUM
-
-VI. SAILS UPON THE SEA
-
-VII. THE SCHOONER
-
-VIII. LOVE STEPS IN
-
-IX. THE SLEEP OF PARADISE
-
-
-
-
-
-PART II
-
-
-X. AN ISLAND HONEYMOON
-
-XI. THE VANISHING OF EMMELINE
-
-XII. THE VANISHING OF EMMELINE (CONTINUED)
-
-XIII. THE NEWCOMER
-
-XIV. HANNAH
-
-XV. THE LAGOON OF FIRE
-
-XVI. THE CYCLONE
-
-XVII. THE STRICKEN WOODS
-
-XVIII. A FALLEN IDOL
-
-XIX. THE EXPEDITION
-
-XX. THE KEEPER OF THE LAGOON
-
-XXI. THE HAND OF THE SEA
-
-XXII. TOGETHER
-
-
-
-
-
-BOOK III
-
-
-
-
-
-I. MAD LESTRANGE
-
-II. THE SECRET OF THE AZURE
-
-III. CAPTAIN FOUNTAIN
-
-IV. DUE SOUTH
-
-
-
-
+<div id="book-content">
+    <!-- The JavaScript below will automatically insert markers here -->
 
 THE BLUE LAGOON
 
@@ -3958,39 +3732,44 @@ In the bottom of the dinghy lay a girl, naked all but for a strip of coloured st
 
 THE END
 
+</div>
 
-
-
-
+<div id="controls">
+    <input type="number" id="pct" style="width:40px" value="50"> % 
+    <button onclick="jump()">Jump</button>
+    <button onclick="save()">Save</button>
+    <button onclick="load()">Load</button>
 </div>
 
 <script>
-    // 1. Jump to % Feature
-    function jumpTo() {
-        const percent = document.getElementById('percentInput').value;
-        const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
-        const targetPos = (percent / 100) * totalHeight;
-        window.scrollTo(0, targetPos);
+    const content = document.getElementById('book-content');
+    const text = content.innerHTML;
+    const segmentLength = Math.floor(text.length / 100);
+    
+    // Break text into 100 parts with ID markers for reliable jumping
+    let newHTML = "";
+    for (let i = 0; i < 100; i++) {
+        newHTML += `<a id="p${i}" class="mark"></a>` + text.substring(i * segmentLength, (i + 1) * segmentLength);
+    }
+    content.innerHTML = newHTML;
+
+    function jump() {
+        const val = document.getElementById('pct').value;
+        location.hash = "p" + val; // Force browser to move to the anchor
     }
 
-    // 2. Bookmark Feature (using LocalStorage)
-    function saveBookmark() {
-        const currentPos = window.scrollY;
-        localStorage.setItem('reader_bookmark', currentPos);
-        alert("Saved!");
+    function save() {
+        const scrollPos = window.pageYOffset || document.documentElement.scrollTop;
+        localStorage.setItem('my_pos', scrollPos);
+        alert("Saved");
     }
 
-    function loadBookmark() {
-        const savedPos = localStorage.getItem('reader_bookmark');
-        if (savedPos) {
-            window.scrollTo(0, parseInt(savedPos));
-        } else {
-            alert("No bookmark found.");
-        }
+    function load() {
+        const pos = localStorage.getItem('my_pos');
+        if (pos) window.scrollTo(0, pos);
     }
 
-    // Auto-load bookmark on page start
-    window.onload = loadBookmark;
+    window.onload = load;
 </script>
 
 </body>
