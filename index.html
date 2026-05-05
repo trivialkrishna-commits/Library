@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>HMD eReader</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f4e9d8;
+      color: #333;
+      line-height: 1.6;
+    }
+    .container { max-width: 100%; margin: 0 auto; padding: 10px; }
+
+    /* Book List */
+    .book-list button {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      margin: 8px 0;
+      font-size: 1.1em;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      text-align: left;
+    }
+
+    /* Reader */
+    #reader {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+    }
+    #book-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px 20px;
+      font-size: 1.1em;
+      background: #fff;
+      color: #333;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: #f8f1e3;
+      position: sticky;
+      bottom: 0;
+      border-top: 1px solid #ccc;
+    }
+    button {
+      padding: 10px 16px;
+      font-size: 1em;
+      border: none;
+      border-radius: 6px;
+      background: #555;
+      color: white;
+    }
+    button:active { background: #333; }
+    #page-input {
+      width: 60px;
+      text-align: center;
+      padding: 8px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: #5c4634;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Book List Screen -->
+  <div id="list-screen">
+    <div class="header">
+      <h2>HMD eReader</h2>
+      <button onclick="toggleTheme()">🌗</button>
+    </div>
+    <div class="container">
+      <h3>My Books</h3>
+      <div id="book-list" class="book-list"></div>
+    </div>
+  </div>
+
+  <!-- Reader Screen -->
+  <div id="reader">
+    <div class="header">
+      <button onclick="backToList()">← Back</button>
+      <span id="book-title" style="font-weight:bold;"></span>
+      <button onclick="toggleTheme()">🌗</button>
+    </div>
+
+    <div id="book-content"></div>
+
+    <div class="controls">
+      <button onclick="prevPage()">← Prev</button>
+      
+      <div>
+        Page <input type="number" id="page-input" value="1" onchange="goToPage()">
+        / <span id="total-pages">1</span>
+      </div>
+
+      <button onclick="nextPage()">Next →</button>
+    </div>
+  </div>
+
+<script>
+// ============= CONFIG =============
+const books = [
+  { title: "Book One Title", filename: "book1.txt" },
+  { title: "Book Two Title", filename: "book2.txt" },
+  // Add more books here
+];
+
+// Words per page (adjust for your phone screen)
+const WORDS_PER_PAGE = 380;
+
+// Current state
+let currentBookText = "";
+let currentPages = [];
+let currentPage = 1;
+let isDark = false;
+
+// Load book list
+function loadBookList() {
+  const container = document.getElementById('book-list');
+  container.innerHTML = '';
+  
+  books.forEach(book => {
+    const btn = document.createElement('button');
+    btn.textContent = book.title;
+    btn.onclick = () => loadBook(book);
+    container.appendChild(btn);
+  });
+}
+
+// Load and process book
+async function loadBook(book) {
+  try {
+    const response = await fetch(`books/${book.filename}`);
+    if (!response.ok) throw new Error("Book not found");
+    
+    const text = await response.text();
+    currentBookText = text.trim();
+    
+    // Split into pages
+    currentPages = splitIntoPages(currentBookText);
+    currentPage = 1;
+    
+    document.getElementById('list-screen').style.display = 'none';
+    document.getElementById('reader').style.display = 'flex';
+    document.getElementById('book-title').textContent = book.title;
+    
+    renderCurrentPage();
+  } catch (e) {
+    alert("Could not load book. Make sure the .txt file is in /books folder.");
+  }
+}
+
+function splitIntoPages(text) {
+  const words = text.split(/\s+/);
+  const pages = [];
+  for (let i = 0; i < words.length; i += WORDS_PER_PAGE) {
+    pages.push(words.slice(i, i + WORDS_PER_PAGE).join(' '));
+  }
+  return pages;
+}
+
+function renderCurrentPage() {
+  document.getElementById('book-content').innerHTML = 
+    `<p>${currentPages[currentPage-1] || "End of book"}</p>`;
+  
+  document.getElementById('page-input').value = currentPage;
+  document.getElementById('total-pages').textContent = currentPages.length;
+}
+
+function nextPage() {
+  if (currentPage < currentPages.length) {
+    currentPage++;
+    renderCurrentPage();
+  }
+}
+
+function prevPage() {
+  if (currentPage > 1) {
+    currentPage--;
+    renderCurrentPage();
+  }
+}
+
+function goToPage() {
+  let page = parseInt(document.getElementById('page-input').value);
+  if (page >= 1 && page <= currentPages.length) {
+    currentPage = page;
+    renderCurrentPage();
+  }
+}
+
+// Back to list
+function backToList() {
+  document.getElementById('reader').style.display = 'none';
+  document.getElementById('list-screen').style.display = 'block';
+}
+
+// Simple theme toggle (2 colors as requested)
+function toggleTheme() {
+  isDark = !isDark;
+  const content = document.getElementById('book-content');
+  
+  if (isDark) {
+    content.style.background = '#2b2b2b';
+    content.style.color = '#e0d0b0';
+  } else {
+    content.style.background = '#fff';
+    content.style.color = '#333';
+  }
+}
+
+// Initialize
+window.onload = loadBookList;
+</script>
+</body>
+</html>
